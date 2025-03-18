@@ -1,0 +1,1 @@
+web: gunicorn MNwacc_dashboard:server

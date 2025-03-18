@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XYZ WACC QUACKULATOR</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('goose.gif');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.8;
+            z-index: -1;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .title-container {
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: yellow;
+            font-size: 32px;
+            text-shadow: 3px 3px 10px black;
+            margin: 0 0 10px 0;
+        }
+
+        .current-wacc {
+            color: white;
+            font-size: 24px;
+            margin: 10px 0 0 0;
+        }
+
+        .wacc-value {
+            color: yellow;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .chart-container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #wacc-chart {
+            width: 100%;
+            height: 50vh;
+        }
+
+        .components-container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #components-chart {
+            width: 100%;
+            height: 50vh;
+        }
+
+        .spread-container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #spread-chart {
+            width: 100%;
+            height: 30vh;
+        }
+
+        .section-title {
+            color: yellow;
+            font-size: 24px;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="background"></div>
+    <div class="container">
+        <div class="title-container">
+            <h1>XYZ WACC QUACKULATOR</h1>
+            <div class="current-wacc">
+                Current WACC: <span class="wacc-value" id="current-wacc">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="section-title">WACC Over Time</div>
+            <div id="wacc-chart"></div>
+        </div>
+
+        <div class="components-container">
+            <div class="section-title">WACC Components</div>
+            <div id="components-chart"></div>
+        </div>
+
+        <div class="spread-container">
+            <div class="section-title">Cost of Equity vs Cost of Debt Spread</div>
+            <div id="spread-chart"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        const data = [
+            ["12/31/15", 6.1403, 6.1404, 2.2195],
+            ["3/31/16", 12.162, 12.1622, 1.5687],
+            ["6/30/16", 11.0909, 11.0911, 1.1455],
+            ["9/30/16", 11.45, 11.453, 1.7862],
+            ["12/31/16", 9.8059, 9.8086, 2.7373],
+            ["3/31/17", 10.3306, 10.7124, 3.2901],
+            ["6/30/17", 11.0793, 11.3908, 3.1758],
+            ["9/30/17", 11.4353, 11.6983, 3.2177],
+            ["12/31/17", 11.0004, 11.2052, 3.3166],
+            ["3/31/18", 12.2839, 12.4432, 3.7776],
+            ["6/30/18", 13.5906, 14.0064, 3.9475],
+            ["9/30/18", 12.5345, 12.7511, 3.9694],
+            ["12/31/18", 16.5534, 17.0516, 3.7053],
+            ["3/31/19", 14.6615, 15.039, 3.3161],
+            ["6/30/19", 14.064, 14.4502, 2.76],
+            ["9/30/19", 13.4716, 13.9266, 2.1101],
+            ["12/31/19", 12.3025, 12.6879, 2.6165],
+            ["3/31/20", 14.7086, 15.9995, 0.9047],
+            ["6/30/20", 13.9079, 14.5272, 0.8836],
+            ["9/30/20", 14.1174, 14.5152, 0.9266],
+            ["12/31/20", 13.7566, 14.139, 1.2255],
+            ["3/31/21", 14.9758, 15.3962, 2.3468],
+            ["6/30/21", 16.1742, 16.8341, 2.2862],
+            ["9/30/21", 17.0009, 17.6901, 2.315],
+            ["12/31/21", 15.5105, 16.3895, 2.3574],
+            ["3/31/22", 15.7077, 16.4778, 3.6738],
+            ["6/30/22", 16.4159, 18.0482, 4.7236],
+            ["9/30/22", 14.129, 15.3559, 6.0914],
+            ["12/31/22", 12.7491, 13.6088, 6.1698],
+            ["3/31/23", 13.9667, 14.965, 5.5315],
+            ["6/30/23", 15.7544, 16.8173, 6.029],
+            ["9/30/23", 15.2208, 16.5306, 7.1832],
+            ["12/31/23", 17.6384, 18.788, 5.2211],
+            ["3/31/24", 14.8147, 15.5345, 5.7031],
+            ["6/30/24", 14.3514, 15.6612, 5.7973],
+            ["9/30/24", 14.9211, 16.3381, 5.3123],
+            ["12/31/24", 13.8734, 14.7206, 6.8842],
+            ["3/4/25", 12.9881, 13.9972, 5.9735]
+        ];
+
+        // Set current WACC value
+        const currentWacc = data[data.length - 1][1];
+        document.getElementById('current-wacc').textContent = currentWacc.toFixed(2) + '%';
+
+        // Process data
+        const dates = data.map(row => new Date(row[0]));
+        const values = data.map(row => row[1]);
+        const equityValues = data.map(row => row[2]);
+        const debtValues = data.map(row => row[3]);
+
+        // Main WACC Chart
+        const waccTrace = {
+            x: dates,
+            y: values,
+            mode: 'lines+markers',
+            name: 'WACC',
+            line: {
+                color: 'white',
+                width: 3,
+                shape: 'spline'
+            },
+            marker: {
+                size: 8,
+                color: 'white'
+            }
+        };
+
+        const lastPoint = {
+            x: [dates[dates.length - 1]],
+            y: [values[values.length - 1]],
+            mode: 'markers+text',
+            marker: {
+                size: 18,
+                color: 'yellow',
+                line: {
+                    color: 'red',
+                    width: 3
+                }
+            },
+            text: [values[values.length - 1].toFixed(2) + '%'],
+            textposition: 'bottom center',
+            textfont: {
+                size: 20,
+                color: 'yellow'
+            },
+            showlegend: false
+        };
+
+        // Components Chart
+        const equityTrace = {
+            x: dates,
+            y: equityValues,
+            mode: 'lines+markers',
+            name: 'Cost of Equity',
+            line: {
+                color: '#2ca02c',
+                width: 2
+            },
+            marker: {
+                size: 6
+            }
+        };
+
+        const debtTrace = {
+            x: dates,
+            y: debtValues,
+            mode: 'lines+markers',
+            name: 'Cost of Debt',
+            line: {
+                color: '#ff7f0e',
+                width: 2
+            },
+            marker: {
+                size: 6
+            }
+        };
+
+        // Spread Chart
+        const spreadTrace = {
+            x: dates,
+            y: equityValues.map((eq, i) => eq - debtValues[i]),
+            fill: 'tozeroy',
+            name: 'Equity-Debt Spread',
+            line: {
+                color: 'rgba(255, 255, 255, 0.5)'
+            }
+        };
+
+        // Layout configuration
+        const commonLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0.2)',
+            font: {
+                size: 14,
+                color: 'white'
+            },
+            margin: {
+                l: 50,
+                r: 50,
+                t: 30,
+                b: 50
+            },
+            showlegend: true,
+            legend: {
+                bgcolor: 'rgba(0,0,0,0.5)',
+                bordercolor: 'white',
+                borderwidth: 1
+            },
+            xaxis: {
+                gridcolor: 'rgba(255,255,255,0.1)',
+                tickcolor: 'white',
+                tickfont: { color: 'white' },
+                showgrid: true
+            },
+            yaxis: {
+                title: 'Rate (%)',
+                gridcolor: 'rgba(255,255,255,0.1)',
+                tickcolor: 'white',
+                tickfont: { color: 'white' },
+                showgrid: true
+            },
+            template: 'plotly_dark'
+        };
+
+        // Create the plots
+        Plotly.newPlot('wacc-chart', [waccTrace, lastPoint], commonLayout, {displayModeBar: false});
+        Plotly.newPlot('components-chart', [waccTrace, equityTrace, debtTrace], commonLayout, {displayModeBar: false});
+        Plotly.newPlot('spread-chart', [spreadTrace], commonLayout, {displayModeBar: false});
+
+        // Animation function for main chart
+        let currentIndex = 0;
+        const animationSpeed = 150;
+
+        function animate() {
+            if (currentIndex >= data.length) {
+                return;
+            }
+
+            const currentDates = dates.slice(0, currentIndex + 1);
+            const currentValues = values.slice(0, currentIndex + 1);
+
+            const updateTrace1 = {
+                x: [currentDates],
+                y: [currentValues]
+            };
+
+            const updateLastPoint = {
+                x: [[currentDates[currentDates.length - 1]]],
+                y: [[currentValues[currentValues.length - 1]]],
+                text: [[currentValues[currentValues.length - 1].toFixed(2) + '%']]
+            };
+
+            Plotly.update('wacc-chart', updateTrace1, {}, [0]);
+            Plotly.update('wacc-chart', updateLastPoint, {}, [1]);
+
+            currentIndex++;
+            setTimeout(animate, animationSpeed);
+        }
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
